@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2';
 import {
   boolean,
   pgTable,
@@ -9,7 +10,9 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export const player = pgTable('player', {
-  steamId: text('steam_id').primaryKey(),
+  steamId: text('steam_id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   nickName: text('nickname').notNull(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
@@ -19,7 +22,9 @@ export const player = pgTable('player', {
 });
 
 export const subscription = pgTable('subscription', {
-  subscriptionId: text('subscription_id').primaryKey(),
+  subscriptionId: text('subscription_id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   playerId: text('player_id')
     .notNull()
     .references(() => player.steamId),
@@ -29,20 +34,26 @@ export const subscription = pgTable('subscription', {
 });
 
 export const map = pgTable('map', {
-  mapId: text('map_id').primaryKey(),
+  mapId: text('map_id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   name: text('name').notNull(),
   category: text('category').notNull(),
   inRotation: boolean('in_rotation').default(false).notNull(),
 });
 
 export const gun = pgTable('gun', {
-  gunId: text('gun_id').primaryKey(),
+  gunId: text('gun_id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   name: text('name').notNull(),
   type: text('type').notNull(),
 });
 
 export const match = pgTable('match', {
-  matchId: text('match_id').primaryKey(),
+  matchId: text('match_id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   mapId: text('map_id')
     .notNull()
     .references(() => map.mapId),
@@ -56,7 +67,9 @@ export const match = pgTable('match', {
 export const matchPlayed = pgTable(
   'match_played',
   {
-    matchPlayedId: text('match_played_id').primaryKey(),
+    matchPlayedId: text('match_played_id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
     playerId: text('player_id')
       .notNull()
       .references(() => player.steamId),
@@ -83,6 +96,9 @@ export const matchPlayed = pgTable(
 export const frags = pgTable(
   'frags',
   {
+    fragId: text('frag_id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
     matchPlayedId: text('match_played_id')
       .notNull()
       .references(() => matchPlayed.matchPlayedId),
@@ -93,6 +109,6 @@ export const frags = pgTable(
     headshots: integer('headshots').notNull(),
   },
   table => ({
-    pk: primaryKey(table.matchPlayedId, table.gunId),
+    playerId_matchId_key: unique().on(table.matchPlayedId, table.gunId),
   })
 );
