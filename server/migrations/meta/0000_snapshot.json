@@ -1,5 +1,5 @@
 {
-  "id": "f1fb3d7e-8e2a-422d-b2ce-935396677ebd",
+  "id": "2afba755-7791-4780-8814-89fd1313cdc9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -8,6 +8,12 @@
       "name": "frags",
       "schema": "",
       "columns": {
+        "frag_id": {
+          "name": "frag_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
         "match_played_id": {
           "name": "match_played_id",
           "type": "text",
@@ -62,16 +68,17 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "frags_match_played_id_gun_id_pk": {
-          "name": "frags_match_played_id_gun_id_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "frags_match_played_id_gun_id_unique": {
+          "name": "frags_match_played_id_gun_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "match_played_id",
             "gun_id"
           ]
         }
       },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

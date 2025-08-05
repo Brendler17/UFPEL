@@ -1,9 +1,10 @@
 CREATE TABLE "frags" (
+	"frag_id" text PRIMARY KEY NOT NULL,
 	"match_played_id" text NOT NULL,
 	"gun_id" text NOT NULL,
 	"number_of_frags" integer NOT NULL,
 	"headshots" integer NOT NULL,
-	CONSTRAINT "frags_match_played_id_gun_id_pk" PRIMARY KEY("match_played_id","gun_id")
+	CONSTRAINT "frags_match_played_id_gun_id_unique" UNIQUE("match_played_id","gun_id")
 );
 --> statement-breakpoint
 CREATE TABLE "gun" (
