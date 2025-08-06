@@ -1,4 +1,5 @@
 import { createId } from '@paralleldrive/cuid2';
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   pgTable,
@@ -6,7 +7,7 @@ import {
   timestamp,
   integer,
   unique,
-  primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 
 export const player = pgTable('player', {
@@ -90,6 +91,10 @@ export const matchPlayed = pgTable(
   },
   table => ({
     playerId_matchId_key: unique().on(table.playerId, table.matchId),
+    roundsPlayed_check: check(
+      'rounds_played_check',
+      sql`${table.roundsPlayed} BETWEEN 24 AND 30`
+    ),
   })
 );
 
@@ -109,6 +114,6 @@ export const frags = pgTable(
     headshots: integer('headshots').notNull(),
   },
   table => ({
-    playerId_matchId_key: unique().on(table.matchPlayedId, table.gunId),
+    matchPlayedId_gunId_key: unique().on(table.matchPlayedId, table.gunId),
   })
 );
