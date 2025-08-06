@@ -1,5 +1,5 @@
 {
-  "id": "2afba755-7791-4780-8814-89fd1313cdc9",
+  "id": "d1037a65-64f7-4f66-9323-e31596d4f032",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -340,7 +340,12 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "rounds_played_check": {
+          "name": "rounds_played_check",
+          "value": "\"match_played\".\"rounds_played\" BETWEEN 24 AND 30"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.player": {

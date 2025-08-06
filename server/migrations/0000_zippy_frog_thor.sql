@@ -43,7 +43,8 @@ CREATE TABLE "match_played" (
 	"rounds_played" integer NOT NULL,
 	"time_played" integer NOT NULL,
 	"damage" integer NOT NULL,
-	CONSTRAINT "match_played_player_id_match_id_unique" UNIQUE("player_id","match_id")
+	CONSTRAINT "match_played_player_id_match_id_unique" UNIQUE("player_id","match_id"),
+	CONSTRAINT "rounds_played_check" CHECK ("match_played"."rounds_played" BETWEEN 24 AND 30)
 );
 --> statement-breakpoint
 CREATE TABLE "player" (
