@@ -1,13 +1,5 @@
+import { sql } from 'drizzle-orm';
 import { db, client } from '../index';
-import {
-  frags,
-  gun,
-  map,
-  match,
-  matchPlayed,
-  player,
-  subscription,
-} from '../schema';
 import { fragsSeed } from './fragsSeed';
 import { gunSeed } from './gunSeed';
 import { mapSeed } from './mapSeed';
@@ -16,13 +8,10 @@ import { matchSeed } from './matchSeed';
 import { playerSeed } from './playerSeed';
 
 async function seedDatabase() {
-  await db.delete(frags);
-  await db.delete(matchPlayed);
-  await db.delete(match);
-  await db.delete(gun);
-  await db.delete(map);
-  await db.delete(subscription);
-  await db.delete(player);
+  console.log('🗑 Limpando banco...');
+  await db.execute(
+    sql`TRUNCATE TABLE frags, match_played, match, gun, map, player, subscription RESTART IDENTITY CASCADE;`
+  );
 
   const playerResponse = await playerSeed();
 
@@ -38,10 +27,15 @@ async function seedDatabase() {
   const { gunResponseIds } = await gunSeed();
 
   await fragsSeed(matchPlayedInfo, gunResponseIds);
-
-  seedDatabase().finally(() => {
-    client.end();
-  });
 }
 
-seedDatabase();
+seedDatabase()
+  .then(() => {
+    console.log('✅ Seed concluído!');
+  })
+  .catch(error => {
+    console.error('❌ Erro no seed:', error);
+  })
+  .finally(() => {
+    client.end();
+  });
