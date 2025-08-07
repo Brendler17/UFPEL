@@ -1,4 +1,4 @@
-import { db, client } from '../index';
+import { db } from '../index';
 import { matchPlayed } from '../schema';
 
 export async function matchPlayedSeed(
