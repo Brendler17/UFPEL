@@ -1,4 +1,4 @@
-import { and, eq, sum } from 'drizzle-orm';
+import { eq, sum } from 'drizzle-orm';
 import { db } from '../db/index';
 import { frags, gun, matchPlayed } from '../db/schema';
 

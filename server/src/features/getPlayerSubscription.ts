@@ -15,6 +15,6 @@ export async function getPlayerSubscription({
     .where(eq(subscription.playerId, playerId));
 
   return {
-    ...playerSubscription,
+    ...playerSubscription[0],
   };
 }
