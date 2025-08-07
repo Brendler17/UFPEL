@@ -17,15 +17,15 @@ export const getAllTimeStatsRoute: FastifyPluginAsyncZod = async app => {
         const { playerId } = request.query;
 
         if (!playerId) {
-          return reply.code(400).send({ error: 'playerId is required' });
+          return reply.status(400).send({ error: 'playerId is required' });
         }
 
         const stats = await getAllTimeStats({ playerId });
 
-        return reply.code(200).send(stats);
+        return reply.status(200).send(stats);
       } catch (error) {
         console.log(error);
-        return reply.code(500).send({ error: 'internal server error' });
+        return reply.status(500).send({ error: 'internal server error' });
       }
     }
   );

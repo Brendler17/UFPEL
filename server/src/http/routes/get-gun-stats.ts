@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { player } from '../../db/schema';
 import { getGunStats } from '../../features/getGunStats';
 
 export const getGunStatsRoute: FastifyPluginAsyncZod = async app => {
@@ -28,8 +27,8 @@ export const getGunStatsRoute: FastifyPluginAsyncZod = async app => {
 
         return reply.status(200).send(stats);
       } catch (error) {
-        console.log(error);
-        reply.status(500).send({ error: 'Internal Server Error' });
+        console.error(error);
+        return reply.status(500).send({ error: 'Internal Server Error' });
       }
     }
   );
