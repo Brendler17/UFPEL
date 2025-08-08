@@ -11,11 +11,16 @@ import { getGunStatsRoute } from './routes/get-gun-stats';
 import { getMapStatsRoute } from './routes/get-map-stats';
 import { getPlayersRankRoute } from './routes/get-players-rank';
 import { getPlayerHistoryRoute } from './routes/get-player-history';
+import fastifyCors from '@fastify/cors';
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
+
+app.register(fastifyCors, {
+  origin: '*',
+});
 
 app.register(getMatchStatsRoute);
 app.register(getAllTimeStatsRoute);
