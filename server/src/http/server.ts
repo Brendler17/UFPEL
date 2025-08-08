@@ -9,6 +9,7 @@ import { getAllTimeStatsRoute } from './routes/get-all-time-stats';
 import { getPlayerSubscriptionRoute } from './routes/get-player-subscription';
 import { getGunStatsRoute } from './routes/get-gun-stats';
 import { getMapStatsRoute } from './routes/get-map-stats';
+import { getPlayersRankRoute } from './routes/get-players-rank';
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
@@ -20,6 +21,7 @@ app.register(getAllTimeStatsRoute);
 app.register(getPlayerSubscriptionRoute);
 app.register(getGunStatsRoute);
 app.register(getMapStatsRoute);
+app.register(getPlayersRankRoute);
 
 app.listen({ port: 3333 }).then(() => {
   console.log('Server is running on http://localhost:3333');
