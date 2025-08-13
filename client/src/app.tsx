@@ -8,7 +8,7 @@ import Maps from './pages/maps';
 import Match from './pages/match';
 
 export function App() {
-  const [playerId, setPlayerId] = useState('rg7q3rygg4m7ya9e3sofu0xe'); // desktop
+  const [playerId, setPlayerId] = useState('xwplm5vhw0yk845hqrglihk7'); // desktop
   //const [playerId, setPlayerId] = useState('e4oge5x7k38erjl9kcq8imvu'); // asus
   const [selectedPage, setSelectedPage] = useState('/');
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
