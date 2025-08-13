@@ -16,6 +16,9 @@
   "linter": {
     "enabled": true,
     "rules": {
+      "suspicious": {
+        "noShadowRestrictedNames": "off"
+      },
       "recommended": true,
       "style": {
         "noNonNullAssertion": "off"
