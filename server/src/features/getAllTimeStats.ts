@@ -1,6 +1,6 @@
-import { sum, eq, count } from 'drizzle-orm';
+import { sum, eq, count, sql } from 'drizzle-orm';
 import { db } from '../db/index';
-import { matchPlayed } from '../db/schema';
+import { match, matchPlayed } from '../db/schema';
 
 interface AllTimeStatsRequest {
   playerId: string;
@@ -11,6 +11,10 @@ export async function getAllTimeStats({ playerId }: AllTimeStatsRequest) {
     .select({
       playerId: matchPlayed.playerId,
       totalMatchPlayeds: count(matchPlayed.matchId).as('totalMatchPlayeds'),
+      totalVictories:
+        sql`SUM (CASE WHEN ${match.result} = TRUE THEN 1 ELSE 0 END)`
+          .mapWith(Number)
+          .as('totalVictories'),
       totalKills: sum(matchPlayed.kills).mapWith(Number).as('totalKills'),
       totalAssists: sum(matchPlayed.assists).mapWith(Number).as('totalAssists'),
       totalDeaths: sum(matchPlayed.deaths).mapWith(Number).as('totalDeaths'),
@@ -36,6 +40,7 @@ export async function getAllTimeStats({ playerId }: AllTimeStatsRequest) {
       totalDamage: sum(matchPlayed.damage).mapWith(Number).as('totalDamage'),
     })
     .from(matchPlayed)
+    .innerJoin(match, eq(matchPlayed.matchId, match.matchId))
     .where(eq(matchPlayed.playerId, playerId))
     .groupBy(matchPlayed.playerId);
 
