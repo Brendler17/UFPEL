@@ -21,7 +21,5 @@ export async function getPlayerHistory({ playerId }: PlayerHistoryRequest) {
     .innerJoin(map, eq(match.mapId, map.mapId))
     .where(eq(matchPlayed.playerId, playerId));
 
-  return {
-    ...playerHistoryResponse,
-  };
+  return playerHistoryResponse;
 }
