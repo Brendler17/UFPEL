@@ -26,5 +26,5 @@ export async function setupTriggers() {
     $$;
   `);
 
-  console.log('Trigger criada/atualizada com sucesso!');
+  console.log('✅ Trigger criada/atualizada com sucesso!');
 }
