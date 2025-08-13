@@ -9,21 +9,21 @@ export const getMapStatsRoute: FastifyPluginAsyncZod = async app => {
       schema: {
         querystring: z.object({
           playerId: z.string(),
-          mapId: z.string(),
+          //mapId: z.string(),
         }),
       },
     },
     async (request, reply) => {
       try {
-        const { playerId, mapId } = request.query;
+        const { playerId /*, mapId */ } = request.query;
 
-        if (!playerId || !mapId) {
+        if (!playerId /*|| !mapId*/) {
           return reply
             .status(400)
             .send({ error: 'playerId and mapId are required' });
         }
 
-        const stats = await getMapStats({ playerId, mapId });
+        const stats = await getMapStats({ playerId /*, mapId */ });
 
         return reply.status(200).send(stats);
       } catch (error) {

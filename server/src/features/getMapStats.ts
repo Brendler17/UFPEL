@@ -4,10 +4,10 @@ import { map, match, matchPlayed } from '../db/schema';
 
 interface MapStatsRequest {
   playerId: string;
-  mapId: string;
+  //mapId: string;
 }
 
-export async function getMapStats({ playerId, mapId }: MapStatsRequest) {
+export async function getMapStats({ playerId /*, mapId*/ }: MapStatsRequest) {
   const mapStats = await db
     .select({
       mapId: map.mapId,
@@ -27,10 +27,9 @@ export async function getMapStats({ playerId, mapId }: MapStatsRequest) {
     .from(matchPlayed)
     .innerJoin(match, eq(matchPlayed.matchId, match.matchId))
     .innerJoin(map, eq(match.mapId, map.mapId))
-    .where(and(eq(matchPlayed.playerId, playerId), eq(match.mapId, mapId)))
-    .groupBy(map.mapId);
+    // alteração
+    .where(eq(matchPlayed.playerId, playerId))
+    .groupBy(map.mapId, map.name);
 
-  return {
-    ...mapStats[0],
-  };
+  return mapStats;
 }
