@@ -1,0 +1,1 @@
+Leia quatro notas, calcule a media aritmética e imprima o resultado.

@@ -1,0 +1,8 @@
+# Ignore files without extension
+*
+!/**/
+!*.*
+
+#Ignore binary files in C
+*.o
+*.d

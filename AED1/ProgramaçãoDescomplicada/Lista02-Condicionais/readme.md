@@ -1,0 +1,1 @@
+Resolução dos exerícios de comandos condicionais, presentes em https://www.facom.ufu.br/~backes/wordpress/ListaC02.pdf.

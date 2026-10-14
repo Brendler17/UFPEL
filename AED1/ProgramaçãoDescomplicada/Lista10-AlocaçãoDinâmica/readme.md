@@ -1,0 +1,1 @@
+Resolução dos exerícios de ponteiros, presentes em https://www.facom.ufu.br/~backes/wordpress/ListaC10.pdf.

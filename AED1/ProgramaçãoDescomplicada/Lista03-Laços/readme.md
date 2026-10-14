@@ -1,0 +1,1 @@
+Resolução dos exerícios de comandos de repetição, presentes em https://www.facom.ufu.br/~backes/wordpress/ListaC03.pdf.

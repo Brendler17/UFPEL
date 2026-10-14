@@ -1,0 +1,1 @@
+Resolução dos exerícios de structs, presentes em https://www.facom.ufu.br/~backes/wordpress/ListaC06.pdf.

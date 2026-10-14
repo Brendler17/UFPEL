@@ -1,0 +1,1 @@
+Resolução dos exerícios de variáveis e expressões, presentes em https://www.facom.ufu.br/~backes/wordpress/ListaC01.pdf.

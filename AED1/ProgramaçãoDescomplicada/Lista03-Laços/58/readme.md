@@ -1,0 +1,1 @@
+Faça um programa que some os numeros primos existentes entre A e B, onde A e B são números informados pelo usuário. 
