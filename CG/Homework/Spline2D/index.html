@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spline2D</title>
+</head>
+<body style="background-color: black;">
+  <canvas id="spline" height="500" width="500" style="background-color: white;"></canvas>
+</body>
+</html>
+
+<script>
+  const canvas = document.getElementById("spline");
+  /** @type {CanvasRenderingContext2D} */
+  const ctx = canvas.getContext("2d");
+
+  let dots = [];
+  let maxDots = 10;
+
+  canvas.addEventListener("click", (event) => {
+      if (dots.length >= maxDots) return; 
+
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      dots.push({x, y});
+
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "black";
+      ctx.fill();
+
+      if (dots.length == maxDots){
+        animateSpline();
+      }
+  });
+
+  function animateSpline(){
+    const samples = [];
+    const steps = 50;
+
+    for (let i = 0; i < dots.length - 1; i++) {
+      const p0 = dots[i - 1] || dots[i];
+      const p1 = dots[i];
+      const p2 = dots[i + 1];
+      const p3 = dots[i + 2] || p2;
+
+      for (let t = 0; t <= 1; t += 1 / steps) {
+        const t2 = t * t;
+        const t3 = t2 * t;
+
+        const x =
+          0.5 *
+          ((2 * p1.x) +
+            (-p0.x + p2.x) * t +
+            (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+            (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
+        const y =
+          0.5 *
+          ((2 * p1.y) +
+            (-p0.y + p2.y) * t +
+            (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+            (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
+
+        samples.push({ x, y });
+      }
+    }
+
+    let progress = 0;
+
+    function drawFrame() {
+      if (progress >= samples.length - 1) return;
+
+      ctx.beginPath();
+      ctx.moveTo(samples[progress].x, samples[progress].y);
+      ctx.lineTo(samples[progress + 1].x, samples[progress + 1].y);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      progress++;
+      requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+  }
+
+</script>

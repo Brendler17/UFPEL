@@ -1,0 +1,6 @@
+.gman-widget-outer{
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 0.25fr 0.25fr 0.50fr;
+  justify-content: space-between;
+}
