@@ -32,13 +32,13 @@ IO.inspect(resultado)
 # 20 palavras mais frequentes
 # ==========================================
 
-# resultado =
-#   Livro.palavras()
-#   |> ???
-#   |> ???
-#   |> ???
-#
-# IO.inspect(resultado)
+resultado =
+  Livro.palavras()
+  |> Enum.frequencies()
+  |> Enum.sort_by(&elem(&1, 1), :desc)
+  |> Enum.take(20)
+
+IO.inspect(resultado)
 
 # Dicas:
 #
@@ -51,13 +51,13 @@ IO.inspect(resultado)
 # Maior palíndromo do livro
 # ==========================================
 
-# resultado =
-#   Livro.palavras()
-#   |> ???
-#   |> ???
-#   |> ???
-#
-# IO.inspect(resultado)
+resultado =
+  Livro.palavras()
+  |> Enum.uniq()
+  |> Enum.filter(&Livro.palindrome?/1)
+  |> Enum.max_by(&String.length/1)
+
+IO.inspect(resultado)
 
 # Dicas:
 #
@@ -72,12 +72,12 @@ IO.inspect(resultado)
 # Quantas palavras possuem mais de 10 letras?
 # ==========================================
 
-# resultado =
-#   Livro.palavras()
-#   |> ???
-#   |> ???
-#
-# IO.inspect(resultado)
+resultado =
+  Livro.palavras()
+  |> Enum.filter(&(String.length(&1)) > 10)
+  |> Enum.count()
+
+IO.inspect(resultado)
 
 # Dicas:
 #
