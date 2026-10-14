@@ -1,0 +1,472 @@
+{
+  "id": "d1037a65-64f7-4f66-9323-e31596d4f032",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.frags": {
+      "name": "frags",
+      "schema": "",
+      "columns": {
+        "frag_id": {
+          "name": "frag_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "match_played_id": {
+          "name": "match_played_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gun_id": {
+          "name": "gun_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "number_of_frags": {
+          "name": "number_of_frags",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headshots": {
+          "name": "headshots",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "frags_match_played_id_match_played_match_played_id_fk": {
+          "name": "frags_match_played_id_match_played_match_played_id_fk",
+          "tableFrom": "frags",
+          "tableTo": "match_played",
+          "columnsFrom": [
+            "match_played_id"
+          ],
+          "columnsTo": [
+            "match_played_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "frags_gun_id_gun_gun_id_fk": {
+          "name": "frags_gun_id_gun_gun_id_fk",
+          "tableFrom": "frags",
+          "tableTo": "gun",
+          "columnsFrom": [
+            "gun_id"
+          ],
+          "columnsTo": [
+            "gun_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "frags_match_played_id_gun_id_unique": {
+          "name": "frags_match_played_id_gun_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_played_id",
+            "gun_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gun": {
+      "name": "gun",
+      "schema": "",
+      "columns": {
+        "gun_id": {
+          "name": "gun_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.map": {
+      "name": "map",
+      "schema": "",
+      "columns": {
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "in_rotation": {
+          "name": "in_rotation",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.match": {
+      "name": "match",
+      "schema": "",
+      "columns": {
+        "match_id": {
+          "name": "match_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "match_map_id_map_map_id_fk": {
+          "name": "match_map_id_map_map_id_fk",
+          "tableFrom": "match",
+          "tableTo": "map",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "columnsTo": [
+            "map_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.match_played": {
+      "name": "match_played",
+      "schema": "",
+      "columns": {
+        "match_played_id": {
+          "name": "match_played_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kills": {
+          "name": "kills",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assists": {
+          "name": "assists",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deaths": {
+          "name": "deaths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mvps": {
+          "name": "mvps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flash_assists": {
+          "name": "flash_assists",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_kills": {
+          "name": "first_kills",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "multi_kills": {
+          "name": "multi_kills",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headshots": {
+          "name": "headshots",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rounds_played": {
+          "name": "rounds_played",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_played": {
+          "name": "time_played",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "damage": {
+          "name": "damage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "match_played_player_id_player_steam_id_fk": {
+          "name": "match_played_player_id_player_steam_id_fk",
+          "tableFrom": "match_played",
+          "tableTo": "player",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "steam_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "match_played_match_id_match_match_id_fk": {
+          "name": "match_played_match_id_match_match_id_fk",
+          "tableFrom": "match_played",
+          "tableTo": "match",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "match_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "match_played_player_id_match_id_unique": {
+          "name": "match_played_player_id_match_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "player_id",
+            "match_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "rounds_played_check": {
+          "name": "rounds_played_check",
+          "value": "\"match_played\".\"rounds_played\" BETWEEN 24 AND 30"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player": {
+      "name": "player",
+      "schema": "",
+      "columns": {
+        "steam_id": {
+          "name": "steam_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "player_email_unique": {
+          "name": "player_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscription": {
+      "name": "subscription",
+      "schema": "",
+      "columns": {
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "subscription_player_id_player_steam_id_fk": {
+          "name": "subscription_player_id_player_steam_id_fk",
+          "tableFrom": "subscription",
+          "tableTo": "player",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "steam_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
