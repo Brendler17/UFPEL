@@ -20,21 +20,26 @@ for line in lines:
   part.add("_".join(parts))
   part.add(".".join(parts))
   part.add("-".join(parts))
-
+  
   if len(parts) == 2:
     part.add(parts[1] + parts[0])
     part.add(f"{parts[0]} {parts[1]}")
+    part.add(parts[0].lower() + parts[1].capitalize())
   bases |= part
 
 def caps(p):
   return {p, p.lower(), p.upper(), p.capitalize(), p.title()}
 
+sufixos = [""]
+sufixos += [str(d) for d in range(0, 100)]
+sufixos += [str(a) for a in range(1900, 2027)]
+sufixos += ["!", "@", "#", "$", "123", "1234", "!@#"]
+
 candidates = set()
 for b in bases:
   for c in caps(b):
-    candidates.add(c)
-    for year in range(1900, 2027):
-      candidates.add(f"{c}{year}")
+    for suf in sufixos:
+      candidates.add(f"{c}{suf}")
 
 found = False
 for cand in candidates:
@@ -48,4 +53,4 @@ for cand in candidates:
         raise SystemExit
 
 if not found:
-  print(f"Nenhuma senha encontrada na busca das bases ({len(candidates)})")
+  print(f"Nenhuma senha encontrada ({len(candidates)} candidatos)")
