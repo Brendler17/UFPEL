@@ -1,0 +1,293 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codekw}{RGB}{0,0,160}
+\definecolor{codecm}{RGB}{90,120,90}
+\definecolor{codestr}{RGB}{160,30,30}
+\definecolor{boxbg}{RGB}{235,242,250}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecm}\itshape,
+  stringstyle=\color{codestr},
+  numbers=left, numberstyle=\tiny\color{gray}, numbersep=6pt,
+  breaklines=true, breakatwhitespace=false,
+  showstringspaces=false, frame=single, rulecolor=\color{gray!40},
+  tabsize=2, captionpos=b, columns=fullflexible,
+  inputencoding=utf8, extendedchars=true,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {ã}{{\~a}}1 {õ}{{\~o}}1 {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1
+           {ç}{{\c c}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1
+           {Ú}{{\'U}}1 {Ã}{{\~A}}1 {Õ}{{\~O}}1 {Ç}{{\c C}}1
+           {à}{{\`a}}1 {—}{{---}}1 {–}{{--}}1 {“}{{``}}1 {”}{{''}}1
+           {’}{{'}}1 {€}{{\texteuro}}1 {º}{{\textordmasculine}}1
+           {φ}{{$\varphi$}}1 {·}{{$\cdot$}}1
+}
+
+\lstdefinestyle{plain}{numbers=none,basicstyle=\ttfamily\small,backgroundcolor=\color{boxbg}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Criptoanálise --- AED3}
+\rhead{\small Grupo 2}
+\cfoot{\thepage}
+
+\title{\textbf{Criptoanálise de um Esquema Híbrido RSA + AES}\\[4pt]
+\large Quebra de senha (SHA-256), fatoração RSA via GNFS e recuperação da mensagem}
+\author{Grupo 2 --- Gabriel Madureira e Gustavo Brendler}
+\date{Algoritmos e Estruturas de Dados III (AED3) --- UFPel\\
+Prof. Ulisses Brisolara Correa\\[2pt]\today}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+\begin{abstract}
+\noindent Este relatório documenta, de forma replicável, a criptoanálise completa de um
+desafio no tema do \emph{Biuro Szyfrów} (a seção polonesa que quebrou a Enigma). A partir de
+quatro artefatos (um \emph{hash} e três arquivos cifrados), recuperamos integralmente a cadeia:
+(i)~quebramos o \emph{hash} SHA-256 da senha; (ii)~deciframos a chave pública RSA; (iii)~fatoramos
+o módulo RSA de 382~bits com o \emph{General Number Field Sieve} (CADO-NFS); (iv)~reconstruímos a
+chave privada e deciframos a chave simétrica; e (v)~deciframos a mensagem final. Registramos
+também as abordagens que \textbf{falharam} e sua explicação técnica, conforme exigido.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+
+\section{Contexto e objetivo}
+O enunciado situa-se no tema histórico do \emph{Biuro Szyfrów} e da máquina Enigma. São fornecidos
+quatro artefatos:
+\begin{itemize}[nosep]
+  \item \texttt{key\_for\_rsa\_public.hash} --- \emph{hash} SHA-256 da senha (pista: começa com \texttt{ma});
+  \item \texttt{key\_public.en} (157~B) --- chave pública RSA cifrada simetricamente com a senha;
+  \item \texttt{key\_for\_message.en} (48~B) --- a chave simétrica da mensagem, cifrada com RSA;
+  \item \texttt{message.en} (1482~B) --- a mensagem final, cifrada simetricamente.
+\end{itemize}
+O objetivo é recuperar a mensagem em claro, documentando todos os procedimentos de modo que o
+processo seja reprodutível a partir do zero.
+
+\section{Arquitetura do desafio}
+A inspeção dos arquivos (comando \texttt{file} e análise dos cabeçalhos com \texttt{xxd}) revelou a
+seguinte cadeia de dependências, típica de um esquema \emph{híbrido} RSA+AES:
+
+\begin{center}
+\fbox{\parbox{0.95\linewidth}{\centering
+\texttt{senha} $\xrightarrow{\text{SHA-256}}$ \emph{hash} (alvo)\\[2pt]
+$\downarrow$ (quebrar o \emph{hash})\\[2pt]
+\texttt{senha} $\xrightarrow{\text{AES simétrico}}$ decifra \texttt{key\_public.en} $\Rightarrow$ chave pública RSA $(N,e)$\\[2pt]
+$\downarrow$ (fatorar $N$)\\[2pt]
+$N=p\cdot q \Rightarrow d=e^{-1}\bmod\varphi(N)$ (chave privada)\\[2pt]
+$\downarrow$\\[2pt]
+\texttt{key\_for\_message.en} $\xrightarrow{\text{RSA }c^d\bmod N}$ chave simétrica da mensagem\\[2pt]
+$\downarrow$\\[2pt]
+\texttt{message.en} $\xrightarrow{\text{AES simétrico}}$ \textbf{mensagem em claro}
+}}
+\end{center}
+
+\noindent Observações de cabeçalho:
+\begin{itemize}[nosep]
+  \item \texttt{message.en} inicia com \texttt{Salted\_\_} (KDF do \texttt{openssl enc} com \emph{salt});
+  \item \texttt{key\_public.en} \emph{não} tem \texttt{Salted\_\_} (cifragem \texttt{-nosalt});
+  \item \texttt{key\_for\_message.en} tem exatamente 48~B $=$ 384~bits $\Rightarrow$ ciphertext RSA-384.
+\end{itemize}
+
+\section{Etapa 1 --- Quebra do \emph{hash} da senha (SHA-256)}
+\label{sec:hash}
+O \emph{hash} alvo tem 64 dígitos hexadecimais (256~bits). Como o material da disciplina não ensina
+funções de \emph{hash} customizadas, assumimos \textbf{SHA-256 padrão} (e validamos contra outros 6
+\emph{hashes} de 256~bits como rede de segurança). A pista é que a senha começa com \texttt{ma}.
+
+\paragraph{Estratégia vencedora.} Após descartar força bruta curta e dicionários simples
+(Seção~\ref{sec:falhas}), aplicamos um \textbf{combinador de duas palavras} em C+OpenMP: para cada
+palavra iniciada em \texttt{ma} (de um dicionário), concatenamos cada palavra de um dicionário amplo
+(com conectores em português opcionais), testando SHA-256 com e sem \texttt{\textbackslash n} final.
+A senha foi encontrada:
+
+\begin{center}\fbox{\large\ttfamily senha = marvinminsky}\end{center}
+
+\noindent Trata-se de \textbf{Marvin Minsky}, um dos fundadores da Inteligência Artificial
+(\texttt{marvin}+\texttt{minsky}); começa com \texttt{ma}, minúscula, 12 caracteres, \emph{sem}
+terminador. Verificação:
+\begin{lstlisting}[style=plain,language=bash]
+$ echo -n "marvinminsky" | sha256sum
+1b78cdb61662342d53da0544a38c87579c4ca0e9b171ad2979f165a6b3e28cce
+\end{lstlisting}
+que é exatamente o conteúdo de \texttt{key\_for\_rsa\_public.hash}.
+
+\section{Etapa 2 --- Decifração da chave pública RSA}
+Com a senha, varremos cifras/modos/KDFs do OpenSSL sobre \texttt{key\_public.en}
+(script \texttt{decrypt\_pubkey.py}). O par vencedor foi \textbf{AES-256-CTR, chave derivada por
+MD=SHA-256, sem \emph{salt}}:
+\begin{lstlisting}[style=plain,language=bash]
+$ openssl enc -d -aes-256-ctr -nosalt -md sha256 \
+      -pass pass:marvinminsky -in key_public.en
+-----BEGIN PUBLIC KEY-----
+MEswDQYJKoZIhvcNAQEBBQADOgAwNwIwJb8QgzaQ/v8DNvt/lOiV0PgtAsRh+ZZx
+6UVGq9OmaaPvjcJ4p+PmqLHCpYLLVSUbAgMBAAE=
+-----END PUBLIC KEY-----
+\end{lstlisting}
+Extraindo os parâmetros (\texttt{openssl rsa -pubin -text -noout}):
+\begin{itemize}[nosep]
+  \item Módulo $N$ (382~bits):\\
+  \texttt{\footnotesize 0x25bf10833690feff0336fb7f94e895d0f82d02c461f99671e94546abd3a669a3ef8dc278a7e3e6a8b1c2a582cb55251b}
+  \item Expoente público $e = 65537$.
+\end{itemize}
+
+\section{Etapa 3 --- Fatoração de $N$ (GNFS / CADO-NFS)}
+A segurança do RSA repousa na dificuldade de fatorar $N$. Com apenas 382~bits, $N$ é
+\emph{fatorável} --- porém \textbf{não} por métodos elementares quando os primos são balanceados
+(ver Seção~\ref{sec:falhas}). Empregamos o \emph{General Number Field Sieve} via \textbf{CADO-NFS}:
+
+\begin{lstlisting}[style=plain,language=bash]
+$ ./cado-nfs.py 5809694326629984678335471447012067562303627826\
+0104987098146141854317060643783262578537565380650848127701261\
+61323291 -t 4
+\end{lstlisting}
+
+\noindent Resultado (tempo real $\approx$ 2h39; $\approx$ 2h38 de CPU acumulada, 4 \emph{threads}):
+\begin{align*}
+p &= 1967103988726232522467829353610346625438028501545676588173\\
+q &= 2953425116275607543642880749640518195177306268255592720967
+\end{align*}
+com $p\cdot q = N$ (ambos primos, verificado por Miller-Rabin). O \emph{factordb} não possuía esses
+fatores, confirmando que a fatoração foi realizada por nós.
+
+\paragraph{Montagem do \emph{toolchain} sem privilégios de administrador.} O ambiente não possuía
+compilador LaTeX, \texttt{pip}, \texttt{cmake}, cabeçalhos do GMP nem ferramentas de fatoração.
+Compilamos tudo a partir do código-fonte, em diretório do usuário: \texttt{m4} $\rightarrow$
+\texttt{GMP 6.3.0} $\rightarrow$ \texttt{CADO-NFS}, obtendo o \texttt{cmake} via \texttt{pip} (ambiente
+virtual) e as dependências Python do CADO (\texttt{flask}, \texttt{requests}) em diretório próprio.
+
+\section{Etapa 4 --- Recuperação da chave simétrica (RSA)}
+Com $p,q$ reconstruímos a chave privada: $\varphi(N)=(p-1)(q-1)$ e $d=e^{-1}\bmod\varphi(N)$.
+Decifrando $c=$ \texttt{key\_for\_message.en} como inteiro \emph{big-endian}: $m=c^{d}\bmod N$.
+O texto recuperado trazia \textbf{padding PKCS\#1 v1.5} (\texttt{00 02 \dots 00 \textbar\ payload}); após
+removê-lo, obtivemos a chave simétrica:
+\begin{center}\fbox{\large\ttfamily chave da mensagem = shafigoldwas}\end{center}
+Referência provável a \textbf{Shafi Goldwasser} (prêmio Turing em criptografia), truncada a 12~bytes
+pelo tamanho do bloco RSA-384 --- reforçando o tema ``pioneiros da computação'' também visto na senha.
+
+\section{Etapa 5 --- Decifração da mensagem final}
+A mensagem usa \texttt{openssl enc} com \emph{salt}. A combinação vencedora foi
+\textbf{AES-256-CFB, MD=SHA-256}:
+\begin{lstlisting}[style=plain,language=bash]
+$ openssl enc -d -aes-256-cfb -md sha256 \
+      -pass pass:shafigoldwas -in message.en
+\end{lstlisting}
+
+\noindent Mensagem recuperada (1466~bytes):
+\lstinputlisting[style=plain]{../results/MENSAGEM_pkcs1_aes-256-cfb_sha256.txt}
+
+\noindent A mensagem endereça explicitamente o \textbf{Grupo 2} (Gabriel Madureira e Gustavo
+Brendler), confirmando o sucesso da criptoanálise.
+
+\section{Abordagens que falharam (e por quê)}
+\label{sec:falhas}
+Documentamos aqui as principais tentativas malsucedidas e a razão técnica de cada fracasso. (O
+registro completo, com mais de 30 variações, está em \texttt{TENTATIVAS.md}.)
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Força bruta de senha ``longa'' (15+ caracteres).}
+  Guiados por um artigo de segurança indicado em aula (que recomenda \emph{passphrases} de 15+
+  caracteres), chegamos a supor uma frase longa. Um espaço de $26^{13}\approx 2.5\times10^{18}$
+  (minúsculas, 13 caracteres após \texttt{ma}) a $\sim$27~milhões de \emph{hashes}/s levaria
+  $\approx$2900~anos. \emph{Conclusão: inviável} --- e, de fato, a senha era um \textbf{nome de
+  12~caracteres}, não uma \emph{passphrase}. Lição: priorizar o \emph{tema} (nomes de pioneiros)
+  em vez do tamanho.
+
+  \item \textbf{Ataque ``textbook RSA'' à chave da mensagem (contornar a senha).}
+  Tentamos recuperar a chave simétrica diretamente de \texttt{key\_for\_message.en} assumindo
+  expoente pequeno ($m=\sqrt[e]{c}$, $e\in\{3,5,7,\dots\}$, \emph{big/little-endian}), sem precisar
+  fatorar $N$. Falhou: o expoente real é $e=65537$ e $c\approx 2^{381}$ sofre redução modular por
+  $N$, logo \emph{não há raiz inteira exata}. Sem $N$ (portanto sem a senha) não há atalho.
+
+  \item \textbf{Dicionários e \emph{rockyou} + regras (\emph{best64}, \emph{leet}, anos).}
+  Testamos $\sim$15 funções de \emph{hash} sobre \emph{rockyou} (filtrado por prefixo \texttt{ma})
+  e dicionários PT/EN com \emph{mangling}. Falhou: a senha (\texttt{marvinminsky}) é a
+  \emph{concatenação de dois nomes}, não uma palavra isolada nem uma variação trivial --- só um
+  \textbf{combinador de 2 palavras} a alcançaria.
+
+  \item \textbf{Fatoração elementar de $N$ (Fermat, Pollard $p\!-\!1$, Brent-$\rho$).}
+  Em Python puro, resolvem apenas casos fracos (primos próximos ou com fator pequeno). Para
+  $N$ de 382~bits com primos \emph{balanceados} ($\approx$191~bits cada), o custo é proibitivo
+  ($\rho$ seria $\sim$$2^{95}$ operações). Por isso foi necessário o \textbf{GNFS (CADO-NFS)}.
+\end{enumerate}
+
+\paragraph{Resumo das famílias de ataque testadas.} A Tabela~\ref{tab:resumo} consolida, por
+família, as mais de 30 variações registradas em \texttt{TENTATIVAS.md} (mantido como apêndice bruto).
+Nenhuma das abordagens de força bruta, dicionário/\emph{rockyou} ou \emph{passphrase} teve êxito;
+somente o \textbf{combinador de duas palavras} recuperou a senha.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{p{0.44\linewidth} p{0.28\linewidth} l}
+\toprule
+\textbf{Família de ataque} & \textbf{Espaço / ferramentas} & \textbf{Resultado}\\
+\midrule
+Força bruta de prefixo \texttt{ma} ([a-z], [a-z0-9], caixa mista, símbolos; até 8--10 chars) & bilhões de \emph{hashes}; 7 funções de 256 bits (C+OpenMP) & falhou\\
+Dicionários $+$ \emph{rockyou} (\texttt{ma*}) com regras \emph{best64}/\emph{leet}/anos, 3 \emph{encodings} & $\sim$15 funções de \emph{hash} & falhou\\
+\emph{Passphrases}/frases temáticas (Enigma/cripto; PL/DE/EN/PT; 1--3 palavras) & milhões de combinações & falhou\\
+Nomes do grupo e dos criptoanalistas do Biuro Szyfrów & milhares de combinações & falhou\\
+Construções alternativas (\emph{double-hash}; entrada hex/base64/revertida; UTF-16/32) & dezenas $\times$ 7--12 \emph{hashes} & falhou\\
+``Textbook RSA'' na chave da mensagem (expoente pequeno; contornar a senha) & $e\in\{3,\dots,65537\}$, big/little-endian & falhou\\
+Fatoração elementar de $N$ (Fermat, Pollard $p\!-\!1$, Brent-$\rho$; Python) & válida só p/ primos fracos & falhou\\
+\midrule
+\textbf{Combinador de 2 palavras} (palavra-\texttt{ma} $\times$ dicionário amplo; C+OpenMP) & SHA-256 & \textbf{sucesso}\\
+\bottomrule
+\end{tabular}
+\caption{Resumo das abordagens testadas na quebra da senha e na fatoração de $N$.}
+\label{tab:resumo}
+\end{table}
+
+\section{Reprodutibilidade --- passo a passo}
+\begin{enumerate}[leftmargin=*,nosep]
+  \item \textbf{Senha:} compilar e rodar o combinador\\
+  \texttt{gcc -O3 -fopenmp -o brute\_combine brute\_combine.c}\\
+  \texttt{./brute\_combine mawords.txt allwords.txt 10} $\Rightarrow$ \texttt{marvinminsky}.
+  \item \textbf{Chave pública:} \texttt{openssl enc -d -aes-256-ctr -nosalt -md sha256 -pass pass:marvinminsky -in key\_public.en}.
+  \item \textbf{Extrair $N,e$:} \texttt{openssl rsa -pubin -in pub.pem -text -noout}.
+  \item \textbf{Fatorar $N$:} \texttt{./cado-nfs.py <N> -t 4} $\Rightarrow p,q$.
+  \item \textbf{Mensagem:} \texttt{python3 finish.py <p> <q>} (reconstrói a privada, decifra a chave
+  simétrica e a mensagem).
+\end{enumerate}
+
+\section{Código-fonte}
+\subsection{\texttt{brute\_combine.c} --- combinador de 2 palavras (SHA-256, C+OpenMP)}
+\lstinputlisting[language=C]{../src/brute_combine.c}
+
+\subsection{\texttt{decrypt\_pubkey.py} --- decifração da chave pública}
+\lstinputlisting[language=Python]{../src/decrypt_pubkey.py}
+
+\subsection{\texttt{factor\_rsa.py} --- fatoração elementar (pré-GNFS)}
+\lstinputlisting[language=Python]{../src/factor_rsa.py}
+
+\subsection{\texttt{finish.py} --- reconstrução da chave privada e decifração final}
+\lstinputlisting[language=Python]{../src/finish.py}
+
+\section*{Conclusão}
+\addcontentsline{toc}{section}{Conclusão}
+A cadeia completa foi quebrada: \texttt{senha=marvinminsky} $\rightarrow$ chave pública RSA-382
+$\rightarrow$ fatoração por GNFS $\rightarrow$ \texttt{chave=shafigoldwas} $\rightarrow$ mensagem em
+claro endereçada ao Grupo~2. O exercício ilustra na prática por que \textbf{RSA de baixa entropia}
+(módulos pequenos e fatoráveis) e \textbf{senhas de espaço de busca limitado} (nomes conhecidos) são
+inseguros, mesmo combinados com AES-256.
+
+\end{document}
