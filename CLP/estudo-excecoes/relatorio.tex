@@ -1,0 +1,330 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{fundo}{gray}{0.96}
+\definecolor{coment}{rgb}{0.35,0.45,0.35}
+\definecolor{chave}{rgb}{0.55,0.10,0.35}
+\definecolor{texto}{rgb}{0.15,0.35,0.60}
+
+\lstdefinelanguage{Rust}{
+  morekeywords={fn,let,mut,match,if,else,for,in,return,struct,enum,impl,use,
+    where,pub,mod,self,Self,Some,None,Ok,Err,true,false,continue,as,break},
+  morekeywords=[2]{Result,Option,String,str,f64,usize,File,BufReader,io},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]",
+}
+\lstset{
+  language=Rust,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{chave}\bfseries,
+  keywordstyle=[2]\color{texto},
+  commentstyle=\color{coment}\itshape,
+  stringstyle=\color{texto},
+  backgroundcolor=\color{fundo},
+  frame=single, rulecolor=\color{gray!40},
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false, numbers=left, numberstyle=\tiny\color{gray},
+  xleftmargin=1.5em, framexleftmargin=1.5em,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {ã}{{\~a}}1 {õ}{{\~o}}1 {ç}{{\c c}}1 {ê}{{\^e}}1 {â}{{\^a}}1
+           {ô}{{\^o}}1 {à}{{\`a}}1 {É}{{\'E}}1 {Ç}{{\c C}}1 {—}{{---}}1
+}
+\lstdefinestyle{saida}{language={},numbers=none,basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{white},xleftmargin=0pt,framexleftmargin=0pt}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Estudo Dirigido --- Tratamento de Exceções em Rust}
+\author{Conceitos de Linguagens de Programação\\[2pt]
+  \small Aluno: Gustavo Marcos Brendler}
+\date{Outubro de 2026}
+
+\begin{document}
+\sloppy
+\maketitle
+
+\section{Implementação}
+
+O programa recebe o nome do arquivo pela linha de comando
+(\code{cargo run -- dados/correto.txt}), lê cada linha no formato
+\code{nome;nota1;nota2}, calcula a média e imprime o resultado.
+Os erros foram divididos em dois níveis:
+
+\begin{itemize}
+  \item \textbf{Erros de E/S} (abrir ou ler o arquivo): representados por
+    \code{std::io::Error} e propagados com \code{?} até \code{main}, que decide
+    a mensagem e encerra o programa (não há como continuar sem o arquivo).
+  \item \textbf{Erros de registro} (campo ausente, nota inválida, campos a mais):
+    representados por um tipo próprio, o \code{enum ErroRegistro}, e tratados
+    linha a linha com \code{match}, de modo que um registro inválido é apenas
+    ignorado e os seguintes continuam sendo processados.
+\end{itemize}
+
+\lstinputlisting[firstline=9]{src/main.rs}
+
+\newpage
+\section{Execução dos casos de teste}
+
+\lstinputlisting[style=saida]{dados/saidas.txt}
+
+Mensagens de erro são escritas na saída de erro (\code{eprintln!}) e o
+resumo final na saída padrão. Além dos quatro casos, o programa inclui
+testes unitários (\code{cargo test}), todos aprovados.
+
+\section{Questões}
+
+\subsection*{1. Como cada problema foi representado e tratado?}
+
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}XX@{}}
+\toprule
+\textbf{Problema} & \textbf{Representação} & \textbf{Tratamento} \\
+\midrule
+Arquivo inexistente &
+\code{File::open} devolve \code{Err(io::Error)} com
+\code{kind() == ErrorKind::NotFound}. &
+Propagado com \code{?} em \code{processar\_arquivo}; tratado em \code{main}
+por um \code{match} com guarda que testa o \code{kind()}; exibe mensagem e
+encerra com código 1. \\
+\addlinespace
+Valor numérico inválido &
+\code{"dez".parse::<f64>()} devolve \code{Err(ParseFloatError)}, convertido
+por \code{map\_err} em \code{ErroRegistro::NotaInvalida}. &
+Propagado com \code{?} de \code{converter\_nota} até \code{analisar\_linha} e
+desta até o laço; ali um \code{match} registra o erro e o laço segue para a
+próxima linha. \\
+\addlinespace
+Campo ausente &
+\code{split(';').next()} devolve \code{None} (um \code{Option}), que é
+convertido em \code{Err(ErroRegistro::CampoAusente)}. &
+Mesmo caminho do caso anterior: propagado por \code{?} e tratado no
+\code{match} do laço, sem interromper o processamento. \\
+\bottomrule
+\end{tabularx}
+
+Em Java essas situações corresponderiam, respectivamente, a
+\code{FileNotFoundException}, \code{NumberFormatException} e
+\code{ArrayIndexOutOfBoundsException} (ou uma exceção própria). Em Rust
+nenhuma delas é uma exceção: todas são \emph{valores} comuns de retorno.
+O \emph{tipo} da função (\code{Result<Estudante, ErroRegistro>},
+\code{io::Result<...>}) anuncia quais erros podem ocorrer, e o compilador não
+permite usar o valor obtido sem antes considerar o caso de erro. Vale notar que a ausência de campo
+nasce como \code{Option} (``não há valor'', sem motivo associado) e só
+vira erro quando o programa decide que essa ausência é um problema e lhe
+dá um significado (\code{CampoAusente \{ campo: "nota2" \}}).
+
+\subsection*{2. Uma operação que retorna \code{Result<T, E>}}
+
+A função \code{converter\_nota} tem tipo
+\code{fn(\&str, \&'static str) -> Result<f64, ErroRegistro>}:
+
+\begin{lstlisting}[numbers=none]
+fn converter_nota(texto: &str, campo: &'static str) -> Result<f64, ErroRegistro> {
+    texto.parse::<f64>().map_err(|causa| ErroRegistro::NotaInvalida {
+        campo, valor: texto.to_string(), causa,
+    })
+}
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{Ok(f64)}: a conversão foi bem-sucedida; o valor carregado é a
+    nota numérica (ex.: \code{"8.5"} $\to$ \code{Ok(8.5)}).
+  \item \code{Err(ErroRegistro)}: a conversão falhou; o valor carregado
+    descreve a falha --- qual campo, qual texto e a causa original
+    (ex.: \code{"dez"} $\to$ \code{Err(NotaInvalida \{ campo: "nota1",
+    valor: "dez", ... \})}).
+\end{itemize}
+
+\textbf{Relação com o levantamento de exceção.} Na videoaula, levantar uma
+exceção (\code{throw}/\code{raise}) significa sinalizar que uma condição
+anormal ocorreu, interrompendo o fluxo normal e transferindo o controle
+para um tratador, junto com um objeto que descreve a exceção. Em Rust,
+\emph{retornar \code{Err(...)}} cumpre o papel de sinalização: a função
+termina e entrega ao chamador um objeto descritivo do erro (o análogo do
+objeto de exceção, com ``tipo'' e dados). A diferença é que nada é
+desviado automaticamente: o \code{Err} é um valor de retorno normal, que
+segue pelo caminho usual de retorno de função. O ``levantamento'' é,
+portanto, explícito e local, e o tipo \code{Result} torna a possibilidade
+de erro parte da assinatura --- algo parecido com as exceções
+\emph{verificadas} de Java (\code{throws}), porém imposto pelo sistema de
+tipos e não por uma regra à parte.
+
+\subsection*{3. O operador \code{?}}
+
+O \code{?} é usado em \code{analisar\_linha} e em \code{processar\_arquivo}:
+
+\begin{lstlisting}[numbers=none]
+let nota1 = converter_nota(proximo_campo(&mut campos, "nota1")?, "nota1")?;
+let arquivo = File::open(caminho)?;
+\end{lstlisting}
+
+\begin{itemize}
+  \item \textbf{Quando a expressão produz \code{Ok(v)}}: o \code{?}
+    ``desembrulha'' o valor e a expressão inteira vale \code{v}. A execução
+    continua normalmente na linha seguinte (\code{nota1} recebe o
+    \code{f64}; \code{arquivo} recebe o \code{File}).
+  \item \textbf{Quando produz \code{Err(e)}}: a função atual retorna
+    \emph{imediatamente} \code{Err(From::from(e))} ao seu chamador; o
+    restante do corpo não é executado. O \code{From::from} permite converter
+    automaticamente o tipo de erro, se houver conversão definida.
+\end{itemize}
+
+Ou seja, \code{x?} equivale a:
+\begin{lstlisting}[numbers=none]
+match x { Ok(v) => v, Err(e) => return Err(From::from(e)) }
+\end{lstlisting}
+
+\textbf{Comparação com propagação de exceções.} No modelo tradicional,
+quando uma unidade não possui tratador para a exceção levantada, ela é
+encerrada e a exceção é \emph{propagada} automaticamente para o chamador
+(seguindo a cadeia dinâmica de chamadas), até encontrar um tratador
+ou chegar ao topo e abortar o programa. O \code{?} produz o mesmo efeito
+observável --- a função é encerrada e o erro ``sobe'' para o chamador ---,
+porém com diferenças importantes:
+\begin{itemize}
+  \item a propagação é \textbf{explícita}: cada ponto em que um erro pode
+    sair da função está marcado com \code{?}; em Java, qualquer chamada
+    pode silenciosamente propagar uma exceção não verificada;
+  \item ela ocorre \textbf{um nível por vez}: cada função intermediária
+    precisa declarar um tipo de retorno compatível (\code{Result}) e usar
+    \code{?} de novo; não há ``salto'' por várias pilhas de uma só vez;
+  \item não existe desempilhamento especial: é um \code{return} comum.
+\end{itemize}
+No programa, a nota inválida ``dez'' é propagada de \code{converter\_nota}
+$\to$ \code{analisar\_linha} $\to$ laço em \code{processar\_arquivo}, onde
+é tratada; já o \code{NotFound} vai de \code{File::open} $\to$
+\code{processar\_arquivo} $\to$ \code{main}.
+
+\subsection*{4. Tratamento explícito com \code{match} versus \code{try-catch}}
+
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{Rust}
+\begin{lstlisting}[numbers=none,basicstyle=\ttfamily\scriptsize]
+match analisar_linha(&linha) {
+  Ok(estudante) => {
+    println!("{} média: {:.2}", ...);
+  }
+  Err(erro) => {
+    eprintln!("[linha {}] ... {}",
+              numero, erro);
+    invalidos += 1;
+  }
+}
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{Java (equivalente)}
+\begin{lstlisting}[numbers=none,language=Java,basicstyle=\ttfamily\scriptsize]
+try {
+  Estudante e = analisarLinha(linha);
+  System.out.printf(...);
+} catch (NumberFormatException ex) {
+  System.err.println(...);
+  invalidos++;
+} catch (CampoAusenteException ex) {
+  System.err.println(...);
+  invalidos++;
+}
+\end{lstlisting}
+\end{minipage}
+
+\textbf{Onde está o tratador e como é associado ao erro.}
+\begin{itemize}
+  \item \textbf{Java:} o tratador é a cláusula \code{catch} associada a um
+    bloco \code{try}. A associação é \emph{dinâmica} e feita pelo
+    \emph{tipo} da exceção: quando algo é lançado em qualquer ponto do
+    bloco protegido (inclusive dentro de métodos chamados por ele), a
+    execução é desviada e a JVM procura, entre os \code{catch} desse
+    \code{try} e depois dos \code{try} envolventes na pilha de chamadas,
+    o primeiro cujo tipo é compatível. O código protegido e o código de
+    tratamento ficam separados.
+  \item \textbf{Rust:} o ``tratador'' é o braço \code{Err(erro) => ...} do
+    \code{match}, e ele se associa a \emph{um valor específico} --- o
+    resultado daquela única chamada \code{analisar\_linha(\&linha)}. A
+    associação é \emph{estática e léxica}: é o próprio programador que
+    inspeciona o valor retornado, no ponto exato da chamada. A seleção entre
+    tipos de erro se faz por casamento de padrões (ex.:
+    \code{Err(e) if e.kind() == NotFound} em \code{main}, ou
+    \code{Err(ErroRegistro::CampoAusente \{..\})}), e o compilador exige
+    que o \code{match} seja exaustivo, ou seja, que \code{Ok} e \code{Err}
+    sejam ambos considerados.
+\end{itemize}
+Em ambos os casos, após o tratamento a execução continua na instrução
+seguinte ao \code{try}/\code{match} --- o modelo de \emph{terminação}, não
+de retomada: o registro com erro não é reprocessado, o laço apenas segue
+para a próxima linha.
+
+\subsection*{5. Rust possui tratamento de exceções no sentido da disciplina?}
+
+\textbf{Não, para erros recuperáveis.} No sentido apresentado na disciplina
+--- um mecanismo da linguagem no qual uma exceção é \emph{levantada},
+desvia implicitamente o fluxo de controle e é \emph{propagada
+automaticamente} pela cadeia de chamadas até um tratador associado
+dinamicamente --- Rust não oferece esse mecanismo para erros esperados.
+Esses erros são tratados como \textbf{valores} (\code{Result} e
+\code{Option}), com apoio de \code{match}, do operador \code{?} e de
+combinadores (\code{map\_err}, \code{ok\_or}, \code{unwrap\_or}, \dots).
+
+O que mais se aproxima de exceção em Rust é o \code{panic!}: ele interrompe
+o fluxo e desempilha a pilha (\emph{unwinding}) executando destrutores, e
+pode até ser capturado com \code{std::panic::catch\_unwind}. Porém, ele se
+destina a erros \emph{irrecuperáveis} (bugs, violação de invariantes),
+pode ser configurado para simplesmente abortar (\code{panic = "abort"}) e
+não é a forma idiomática de sinalizar erros como os deste estudo.
+
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}XX@{}}
+\toprule
+\textbf{Aspecto} & \textbf{Modelo tradicional (Java, C++, Python)} & \textbf{Rust} \\
+\midrule
+Sinalização & \code{throw} de um objeto exceção & \code{return Err(valor)} (ou \code{None}) \\
+\addlinespace
+Representação do erro & Objeto de uma hierarquia de classes de exceção & Valor de qualquer tipo, geralmente um \code{enum} \\
+\addlinespace
+Fluxo de controle & Desvio implícito, não local & Retorno comum, local e explícito \\
+\addlinespace
+Propagação & Automática pela pilha até achar tratador & Explícita com \code{?}, um nível por vez \\
+\addlinespace
+Associação ao tratador & Dinâmica, pelo tipo, ao \code{catch} mais próximo & Léxica, por \code{match} sobre o valor retornado \\
+\addlinespace
+Erro não tratado & Termina o programa (ou a thread) & Não passa despercebido: \code{Result} ignorado gera aviso do compilador, e para obter o \code{T} é preciso decidir o que fazer com o \code{Err} (\code{match}, \code{?}, \code{unwrap}\dots) \\
+\addlinespace
+Visibilidade na assinatura & Só exceções verificadas (Java) & Sempre, no tipo de retorno \\
+\addlinespace
+Continuação & Terminação & Terminação (a função que falha não é retomada) \\
+\addlinespace
+Erros irrecuperáveis & Mesma construção (\code{Error}, \code{RuntimeException}) & Mecanismo separado: \code{panic!} \\
+\bottomrule
+\end{tabularx}
+
+\textbf{Semelhanças:} ambos separam o resultado normal do resultado de
+erro; ambos carregam informação descritiva sobre a falha (tipo e dados);
+ambos permitem tratar o erro no local ou repassá-lo ao chamador; e ambos
+seguem o modelo de terminação, em que a unidade que detectou o erro não é
+retomada.
+
+\textbf{Diferenças:} em Rust, o erro é um valor comum e não um evento de
+controle; a propagação é explícita (\code{?}) e não automática; a
+associação com o tratador é léxica e verificada pelo compilador
+(exaustividade do \code{match}), o que impede que um erro seja esquecido;
+e não há custo nem complexidade de desempilhamento para o caminho de erro.
+Em troca, o código fica um pouco mais verboso e cada função intermediária
+precisa declarar o tipo de erro que pode devolver --- custo que o
+operador \code{?} e a conversão via \code{From} reduzem bastante.
+
+Em resumo, Rust \emph{resolve o mesmo problema} que o tratamento de
+exceções resolve (detectar, sinalizar, propagar e tratar situações
+anormais), mas por meio do sistema de tipos, e não por um mecanismo de
+desvio de controle. Seu único mecanismo semelhante a exceções, o
+\code{panic!}, é reservado para falhas irrecuperáveis.
+
+\end{document}

@@ -1,0 +1,35 @@
+$ cargo run -q -- dados/correto.txt
+Processando 'dados/correto.txt'...
+Maria      média:  7.75
+Joao       média:  7.50
+Pedro      média:  9.25
+Ana        média:  6.75
+Carlos     média:  8.50
+Concluído: 5 registro(s) válido(s), 0 inválido(s).
+(código de saída: 0)
+
+$ cargo run -q -- dados/inexistente.txt
+Processando 'dados/inexistente.txt'...
+Erro: o arquivo 'dados/inexistente.txt' não foi encontrado.
+(código de saída: 1)
+
+$ cargo run -q -- dados/numero_invalido.txt
+Processando 'dados/numero_invalido.txt'...
+Maria      média:  7.75
+Joao       média:  7.50
+[linha 3] registro ignorado — valor inválido em 'nota1': "dez" (invalid float literal)  => "Pedro;dez;8.5"
+Ana        média:  6.75
+Carlos     média:  8.50
+Concluído: 4 registro(s) válido(s), 1 inválido(s).
+(código de saída: 0)
+
+$ cargo run -q -- dados/campo_ausente.txt
+Processando 'dados/campo_ausente.txt'...
+Maria      média:  7.75
+Joao       média:  7.50
+[linha 3] registro ignorado — campo ausente: 'nota2'  => "Pedro;10.0"
+Ana        média:  6.75
+Carlos     média:  8.50
+Concluído: 4 registro(s) válido(s), 1 inválido(s).
+(código de saída: 0)
+
